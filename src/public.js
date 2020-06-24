@@ -262,9 +262,14 @@ QueryBuilder.prototype.getRules = function(options) {
                 value = rule.value;
             }
 
+            var filterName = rule.filter ? rule.filter.field : null;
+            if (rule.filter.dynamic_filter) {
+                filterName = rule.$el.find('.rule-filter-container input').val();
+            }
+
             var ruleData = {
                 id: rule.filter ? rule.filter.id : null,
-                field: rule.filter ? rule.filter.field : null,
+                field: filterName,
                 type: rule.filter ? rule.filter.type : null,
                 input: rule.filter ? rule.filter.input : null,
                 operator: rule.operator ? rule.operator.type : null,

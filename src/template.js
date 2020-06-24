@@ -65,7 +65,13 @@ QueryBuilder.templates.filterSelect = '\
     <option value="{{= filter.id }}" {{? filter.icon}}data-icon="{{= filter.icon}}"{{?}}>{{= it.translate(filter.label) }}</option> \
   {{~}} \
   {{? optgroup !== null }}</optgroup>{{?}} \
-</select>';
+</select>\
+';
+
+QueryBuilder.templates.filterDynamic = '\
+<br>\
+<input class="form-control" name="{{= it.filter.id }}_filter_name"> \
+';
 
 QueryBuilder.templates.operatorSelect = '\
 {{? it.operators.length === 1 }} \
@@ -189,6 +195,35 @@ QueryBuilder.prototype.getRuleFilterSelect = function(rule, filters) {
      * @returns {string}
      */
     return this.change('getRuleFilterSelect', h, rule, filters);
+};
+
+/**
+ * Returns rule's filter dynamic name HTML
+ * @param {Rule} rule
+ * @param {object[]} filters
+ * @returns {string}
+ * @fires QueryBuilder.changer:getRuleFilterTemplate
+ * @private
+ */
+QueryBuilder.prototype.getRuleFilterDynamic = function(filter) {
+    var h = this.templates.filterDynamic({
+        builder: this,
+        filter: filter,
+        icons: this.icons,
+        settings: this.settings,
+        translate: this.translate.bind(this)
+    });
+
+    /**
+     * Modifies the raw HTML of the rule's filter dynamic input
+     * @event changer:getRuleFilterSelect
+     * @memberof QueryBuilder
+     * @param {string} html
+     * @param {Rule} rule
+     * @param {QueryBuilder.Filter[]} filters
+     * @returns {string}
+     */
+    return this.change('getRuleFilterDynamic', h, filter);
 };
 
 /**

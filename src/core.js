@@ -653,6 +653,11 @@ QueryBuilder.prototype.createRuleOperators = function(rule) {
         return;
     }
 
+    if (rule.filter.dynamic_filter) {
+        var $filterDynamic = $(this.getRuleFilterDynamic(rule.filter));
+        rule.$el.find(QueryBuilder.selectors.filter_container).append($filterDynamic);
+    }
+
     var operators = this.getOperators(rule.filter);
     var $operatorSelect = $(this.getRuleOperatorSelect(rule, operators));
 
