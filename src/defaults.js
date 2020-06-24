@@ -155,6 +155,7 @@ QueryBuilder.DEFAULTS = {
     templates: {
         group: null,
         rule: null,
+        filterDynamic: null,
         filterSelect: null,
         operatorSelect: null,
         ruleValueSelect: null

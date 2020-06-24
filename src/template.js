@@ -65,7 +65,13 @@ QueryBuilder.templates.filterSelect = '\
     <option value="{{= filter.id }}" {{? filter.icon}}data-icon="{{= filter.icon}}"{{?}}>{{= it.translate(filter.label) }}</option> \
   {{~}} \
   {{? optgroup !== null }}</optgroup>{{?}} \
-</select>';
+</select>\
+';
+
+QueryBuilder.templates.filterDynamic = '\
+<br>\
+<input class="form-control" name="{{= it.filter.id }}_filter_name"> \
+';
 
 QueryBuilder.templates.operatorSelect = '\
 {{? it.operators.length === 1 }} \
@@ -192,6 +198,35 @@ QueryBuilder.prototype.getRuleFilterSelect = function(rule, filters) {
 };
 
 /**
+ * Returns rule's filter dynamic name HTML
+ * @param {Rule} rule
+ * @param {object[]} filters
+ * @returns {string}
+ * @fires QueryBuilder.changer:getRuleFilterTemplate
+ * @private
+ */
+QueryBuilder.prototype.getRuleFilterDynamic = function(filter) {
+    var h = this.templates.filterDynamic({
+        builder: this,
+        filter: filter,
+        icons: this.icons,
+        settings: this.settings,
+        translate: this.translate.bind(this)
+    });
+
+    /**
+     * Modifies the raw HTML of the rule's filter dynamic input
+     * @event changer:getRuleFilterSelect
+     * @memberof QueryBuilder
+     * @param {string} html
+     * @param {Rule} rule
+     * @param {QueryBuilder.Filter[]} filters
+     * @returns {string}
+     */
+    return this.change('getRuleFilterDynamic', h, filter);
+};
+
+/**
  * Returns rule's operator HTML
  * @param {Rule} rule
  * @param {object[]} operators
@@ -265,6 +300,7 @@ QueryBuilder.prototype.getRuleInput = function(rule, value_id) {
     var name = rule.id + '_value_' + value_id;
     var c = filter.vertical ? ' class=block' : '';
     var h = '';
+    var placeholder = Array.isArray(filter.placeholder) ? filter.placeholder[value_id] : filter.placeholder;
 
     if (typeof filter.input == 'function') {
         h = filter.input.call(this, rule, name);
@@ -288,7 +324,7 @@ QueryBuilder.prototype.getRuleInput = function(rule, value_id) {
                 if (filter.rows) h += ' rows="' + filter.rows + '"';
                 if (validation.min !== undefined) h += ' minlength="' + validation.min + '"';
                 if (validation.max !== undefined) h += ' maxlength="' + validation.max + '"';
-                if (filter.placeholder) h += ' placeholder="' + filter.placeholder + '"';
+                if (placeholder) h += ' placeholder="' + placeholder + '"';
                 h += '></textarea>';
                 break;
 
@@ -297,14 +333,14 @@ QueryBuilder.prototype.getRuleInput = function(rule, value_id) {
                 if (validation.step !== undefined) h += ' step="' + validation.step + '"';
                 if (validation.min !== undefined) h += ' min="' + validation.min + '"';
                 if (validation.max !== undefined) h += ' max="' + validation.max + '"';
-                if (filter.placeholder) h += ' placeholder="' + filter.placeholder + '"';
+                if (placeholder) h += ' placeholder="' + placeholder + '"';
                 if (filter.size) h += ' size="' + filter.size + '"';
                 h += '>';
                 break;
 
             default:
                 h += '<input class="form-control" type="text" name="' + name + '"';
-                if (filter.placeholder) h += ' placeholder="' + filter.placeholder + '"';
+                if (placeholder) h += ' placeholder="' + placeholder + '"';
                 if (filter.type === 'string' && validation.min !== undefined) h += ' minlength="' + validation.min + '"';
                 if (filter.type === 'string' && validation.max !== undefined) h += ' maxlength="' + validation.max + '"';
                 if (filter.size) h += ' size="' + filter.size + '"';
