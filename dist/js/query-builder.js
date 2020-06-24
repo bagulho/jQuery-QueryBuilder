@@ -1,6 +1,6 @@
 /*!
- * jQuery QueryBuilder 2.5.2
- * Copyright 2014-2018 Damien "Mistic" Sorel (http://www.strangeplanet.fr)
+ * jQuery QueryBuilder 2.6.0
+ * Copyright 2014-2020 Damien "Mistic" Sorel (http://www.strangeplanet.fr)
  * Licensed under MIT (https://opensource.org/licenses/MIT)
  */
 (function(root, factory) {
@@ -398,6 +398,7 @@ QueryBuilder.DEFAULTS = {
     templates: {
         group: null,
         rule: null,
+        filterDynamic: null,
         filterSelect: null,
         operatorSelect: null,
         ruleValueSelect: null
@@ -1210,6 +1211,11 @@ QueryBuilder.prototype.createRuleOperators = function(rule) {
         return;
     }
 
+    if (rule.filter.dynamic_filter) {
+        var $filterDynamic = $(this.getRuleFilterDynamic(rule.filter));
+        rule.$el.find(QueryBuilder.selectors.filter_container).append($filterDynamic);
+    }
+
     var operators = this.getOperators(rule.filter);
     var $operatorSelect = $(this.getRuleOperatorSelect(rule, operators));
 
@@ -1802,9 +1808,14 @@ QueryBuilder.prototype.getRules = function(options) {
                 value = rule.value;
             }
 
+            var filterName = rule.filter ? rule.filter.field : null;
+            if (rule.filter.dynamic_filter) {
+                filterName = rule.$el.find('.rule-filter-container input').val();
+            }
+
             var ruleData = {
                 id: rule.filter ? rule.filter.id : null,
-                field: rule.filter ? rule.filter.field : null,
+                field: filterName,
                 type: rule.filter ? rule.filter.type : null,
                 input: rule.filter ? rule.filter.input : null,
                 operator: rule.operator ? rule.operator.type : null,
@@ -2283,7 +2294,6 @@ QueryBuilder.prototype.nextRuleId = function() {
  * @param {string|object} filter - filter id or filter object
  * @returns {object[]}
  * @fires QueryBuilder.changer:getOperators
- * @private
  */
 QueryBuilder.prototype.getOperators = function(filter) {
     if (typeof filter == 'string') {
@@ -2331,7 +2341,6 @@ QueryBuilder.prototype.getOperators = function(filter) {
  * @param {boolean} [doThrow=true]
  * @returns {object|null}
  * @throws UndefinedFilterError
- * @private
  */
 QueryBuilder.prototype.getFilterById = function(id, doThrow) {
     if (id == '-1') {
@@ -2355,7 +2364,6 @@ QueryBuilder.prototype.getFilterById = function(id, doThrow) {
  * @param {boolean} [doThrow=true]
  * @returns {object|null}
  * @throws UndefinedOperatorError
- * @private
  */
 QueryBuilder.prototype.getOperatorByType = function(type, doThrow) {
     if (type == '-1') {
@@ -2749,7 +2757,13 @@ QueryBuilder.templates.filterSelect = '\
     <option value="{{= filter.id }}" {{? filter.icon}}data-icon="{{= filter.icon}}"{{?}}>{{= it.translate(filter.label) }}</option> \
   {{~}} \
   {{? optgroup !== null }}</optgroup>{{?}} \
-</select>';
+</select>\
+';
+
+QueryBuilder.templates.filterDynamic = '\
+<br>\
+<input class="form-control" name="{{= it.filter.id }}_filter_name"> \
+';
 
 QueryBuilder.templates.operatorSelect = '\
 {{? it.operators.length === 1 }} \
@@ -2876,6 +2890,35 @@ QueryBuilder.prototype.getRuleFilterSelect = function(rule, filters) {
 };
 
 /**
+ * Returns rule's filter dynamic name HTML
+ * @param {Rule} rule
+ * @param {object[]} filters
+ * @returns {string}
+ * @fires QueryBuilder.changer:getRuleFilterTemplate
+ * @private
+ */
+QueryBuilder.prototype.getRuleFilterDynamic = function(filter) {
+    var h = this.templates.filterDynamic({
+        builder: this,
+        filter: filter,
+        icons: this.icons,
+        settings: this.settings,
+        translate: this.translate.bind(this)
+    });
+
+    /**
+     * Modifies the raw HTML of the rule's filter dynamic input
+     * @event changer:getRuleFilterSelect
+     * @memberof QueryBuilder
+     * @param {string} html
+     * @param {Rule} rule
+     * @param {QueryBuilder.Filter[]} filters
+     * @returns {string}
+     */
+    return this.change('getRuleFilterDynamic', h, filter);
+};
+
+/**
  * Returns rule's operator HTML
  * @param {Rule} rule
  * @param {object[]} operators
@@ -2949,6 +2992,7 @@ QueryBuilder.prototype.getRuleInput = function(rule, value_id) {
     var name = rule.id + '_value_' + value_id;
     var c = filter.vertical ? ' class=block' : '';
     var h = '';
+    var placeholder = Array.isArray(filter.placeholder) ? filter.placeholder[value_id] : filter.placeholder;
 
     if (typeof filter.input == 'function') {
         h = filter.input.call(this, rule, name);
@@ -2972,7 +3016,7 @@ QueryBuilder.prototype.getRuleInput = function(rule, value_id) {
                 if (filter.rows) h += ' rows="' + filter.rows + '"';
                 if (validation.min !== undefined) h += ' minlength="' + validation.min + '"';
                 if (validation.max !== undefined) h += ' maxlength="' + validation.max + '"';
-                if (filter.placeholder) h += ' placeholder="' + filter.placeholder + '"';
+                if (placeholder) h += ' placeholder="' + placeholder + '"';
                 h += '></textarea>';
                 break;
 
@@ -2981,14 +3025,14 @@ QueryBuilder.prototype.getRuleInput = function(rule, value_id) {
                 if (validation.step !== undefined) h += ' step="' + validation.step + '"';
                 if (validation.min !== undefined) h += ' min="' + validation.min + '"';
                 if (validation.max !== undefined) h += ' max="' + validation.max + '"';
-                if (filter.placeholder) h += ' placeholder="' + filter.placeholder + '"';
+                if (placeholder) h += ' placeholder="' + placeholder + '"';
                 if (filter.size) h += ' size="' + filter.size + '"';
                 h += '>';
                 break;
 
             default:
                 h += '<input class="form-control" type="text" name="' + name + '"';
-                if (filter.placeholder) h += ' placeholder="' + filter.placeholder + '"';
+                if (placeholder) h += ' placeholder="' + placeholder + '"';
                 if (filter.type === 'string' && validation.min !== undefined) h += ' minlength="' + validation.min + '"';
                 if (filter.type === 'string' && validation.max !== undefined) h += ' maxlength="' + validation.max + '"';
                 if (filter.size) h += ' size="' + filter.size + '"';
@@ -4235,7 +4279,9 @@ QueryBuilder.define('chosen-selectpicker', function(options) {
     });
 
     this.on('afterCreateRuleOperators', function(e, rule) {
-        rule.$el.find(Selectors.rule_operator).removeClass('form-control').chosen(options);
+        if (e.builder.getOperators(rule.filter).length > 1) {
+            rule.$el.find(Selectors.rule_operator).removeClass('form-control').chosen(options);
+        }
     });
 
     // update selectpicker on change
@@ -6126,7 +6172,7 @@ QueryBuilder.extend(/** @lends module:plugins.UniqueFilter.prototype */ {
 
 
 /*!
- * jQuery QueryBuilder 2.5.2
+ * jQuery QueryBuilder 2.6.0
  * Locale: English (en)
  * Author: Damien "Mistic" Sorel, http://www.strangeplanet.fr
  * Licensed under MIT (https://opensource.org/licenses/MIT)
