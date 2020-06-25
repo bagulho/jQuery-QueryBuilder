@@ -151,6 +151,12 @@ QueryBuilder.prototype.checkFilters = function(filters) {
         filters = Utils.groupSort(filters, 'optgroup');
     }
 
+
+    if (this.settings.dynamic_filters) {
+        this.settings.default_filter = filters[0].id;
+        return [filters[0]];
+    }
+
     return filters;
 };
 
@@ -653,7 +659,7 @@ QueryBuilder.prototype.createRuleOperators = function(rule) {
         return;
     }
 
-    if (rule.filter.dynamic_filter) {
+    if (rule.filter.dynamic_filter && !this.settings.dynamic_filters) {
         var $filterDynamic = $(this.getRuleFilterDynamic(rule.filter));
         rule.$el.find(QueryBuilder.selectors.filter_container).append($filterDynamic);
     }
@@ -756,7 +762,7 @@ QueryBuilder.prototype.updateRuleFilter = function(rule, previousFilter) {
     this.createRuleOperators(rule);
     this.createRuleInput(rule);
 
-    rule.$el.find(QueryBuilder.selectors.rule_filter).val(rule.filter ? rule.filter.id : '-1');
+    rule.$el.find(QueryBuilder.selectors.rule_filter).val((rule.filter ? rule.filter.id : '-1').trim());
 
     // clear rule data if the filter changed
     if (previousFilter && rule.filter && previousFilter.id !== rule.filter.id) {

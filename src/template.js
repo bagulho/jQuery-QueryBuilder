@@ -50,6 +50,7 @@ QueryBuilder.templates.rule = '\
 </div>';
 
 QueryBuilder.templates.filterSelect = '\
+{{? !it.settings.dynamic_filters }} \
 {{ var optgroup = null; }} \
 <select class="form-control" name="{{= it.rule.id }}_filter"> \
   {{? it.settings.display_empty_filter }} \
@@ -66,6 +67,10 @@ QueryBuilder.templates.filterSelect = '\
   {{~}} \
   {{? optgroup !== null }}</optgroup>{{?}} \
 </select>\
+{{?}} \
+{{? it.settings.dynamic_filters }} \
+<input class="form-control" name="{{= it.rule.id }}_filter"> \
+{{?}} \
 ';
 
 QueryBuilder.templates.filterDynamic = '\

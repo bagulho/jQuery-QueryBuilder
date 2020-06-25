@@ -145,7 +145,7 @@
 
 
 /*!
- * jQuery QueryBuilder 2.6.0
+ * jQuery QueryBuilder 2.7.0
  * Copyright 2014-2020 Damien "Mistic" Sorel (http://www.strangeplanet.fr)
  * Licensed under MIT (https://opensource.org/licenses/MIT)
  */
@@ -515,6 +515,7 @@ QueryBuilder.DEFAULTS = {
     filters: [],
     plugins: [],
 
+    dynamic_filters: false,
     sort_filters: false,
     display_errors: true,
     allow_groups: -1,
@@ -853,6 +854,12 @@ QueryBuilder.prototype.checkFilters = function(filters) {
 
     if (this.status.has_optgroup) {
         filters = Utils.groupSort(filters, 'optgroup');
+    }
+
+
+    if (this.settings.dynamic_filters) {
+        this.settings.default_filter = filters[0].id;
+        return [filters[0]];
     }
 
     return filters;
@@ -1357,7 +1364,7 @@ QueryBuilder.prototype.createRuleOperators = function(rule) {
         return;
     }
 
-    if (rule.filter.dynamic_filter) {
+    if (rule.filter.dynamic_filter && !this.settings.dynamic_filters) {
         var $filterDynamic = $(this.getRuleFilterDynamic(rule.filter));
         rule.$el.find(QueryBuilder.selectors.filter_container).append($filterDynamic);
     }
@@ -1460,7 +1467,7 @@ QueryBuilder.prototype.updateRuleFilter = function(rule, previousFilter) {
     this.createRuleOperators(rule);
     this.createRuleInput(rule);
 
-    rule.$el.find(QueryBuilder.selectors.rule_filter).val(rule.filter ? rule.filter.id : '-1');
+    rule.$el.find(QueryBuilder.selectors.rule_filter).val((rule.filter ? rule.filter.id : '-1').trim());
 
     // clear rule data if the filter changed
     if (previousFilter && rule.filter && previousFilter.id !== rule.filter.id) {
@@ -1955,12 +1962,18 @@ QueryBuilder.prototype.getRules = function(options) {
             }
 
             var filterName = rule.filter ? rule.filter.field : null;
-            if (rule.filter.dynamic_filter) {
+            var filterId = rule.filter ? rule.filter.id : null;
+            if (rule.filter.dynamic_filter && !self.settings.dynamic_filters) {
+                filterName = rule.$el.find('.rule-filter-container input').val();
+            }
+
+            if (self.settings.dynamic_filters) {
+                filterId = rule.$el.find('.rule-filter-container input').val();
                 filterName = rule.$el.find('.rule-filter-container input').val();
             }
 
             var ruleData = {
-                id: rule.filter ? rule.filter.id : null,
+                id: filterId,
                 field: filterName,
                 type: rule.filter ? rule.filter.type : null,
                 input: rule.filter ? rule.filter.input : null,
@@ -2111,7 +2124,13 @@ QueryBuilder.prototype.setRules = function(data, options) {
                 }
 
                 if (!item.empty) {
-                    model.filter = self.getFilterById(item.id, !options.allow_invalid);
+                    if (self.settings.dynamic_filters) {
+                        var filter = JSON.parse(JSON.stringify(self.filters[0]));
+                        filter.id = item.id;
+                        model.filter = filter;
+                    } else {
+                        model.filter = self.getFilterById(item.id, !options.allow_invalid);
+                    }
                 }
 
                 if (model.filter) {
@@ -2888,6 +2907,7 @@ QueryBuilder.templates.rule = '\
 </div>';
 
 QueryBuilder.templates.filterSelect = '\
+{{? !it.settings.dynamic_filters }} \
 {{ var optgroup = null; }} \
 <select class="form-control" name="{{= it.rule.id }}_filter"> \
   {{? it.settings.display_empty_filter }} \
@@ -2904,6 +2924,10 @@ QueryBuilder.templates.filterSelect = '\
   {{~}} \
   {{? optgroup !== null }}</optgroup>{{?}} \
 </select>\
+{{?}} \
+{{? it.settings.dynamic_filters }} \
+<input class="form-control" name="{{= it.rule.id }}_filter"> \
+{{?}} \
 ';
 
 QueryBuilder.templates.filterDynamic = '\
@@ -6318,7 +6342,7 @@ QueryBuilder.extend(/** @lends module:plugins.UniqueFilter.prototype */ {
 
 
 /*!
- * jQuery QueryBuilder 2.6.0
+ * jQuery QueryBuilder 2.7.0
  * Locale: English (en)
  * Author: Damien "Mistic" Sorel, http://www.strangeplanet.fr
  * Licensed under MIT (https://opensource.org/licenses/MIT)

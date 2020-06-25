@@ -263,12 +263,18 @@ QueryBuilder.prototype.getRules = function(options) {
             }
 
             var filterName = rule.filter ? rule.filter.field : null;
-            if (rule.filter.dynamic_filter) {
+            var filterId = rule.filter ? rule.filter.id : null;
+            if (rule.filter.dynamic_filter && !self.settings.dynamic_filters) {
+                filterName = rule.$el.find('.rule-filter-container input').val();
+            }
+
+            if (self.settings.dynamic_filters) {
+                filterId = rule.$el.find('.rule-filter-container input').val();
                 filterName = rule.$el.find('.rule-filter-container input').val();
             }
 
             var ruleData = {
-                id: rule.filter ? rule.filter.id : null,
+                id: filterId,
                 field: filterName,
                 type: rule.filter ? rule.filter.type : null,
                 input: rule.filter ? rule.filter.input : null,
@@ -419,7 +425,13 @@ QueryBuilder.prototype.setRules = function(data, options) {
                 }
 
                 if (!item.empty) {
-                    model.filter = self.getFilterById(item.id, !options.allow_invalid);
+                    if (self.settings.dynamic_filters) {
+                        var filter = JSON.parse(JSON.stringify(self.filters[0]));
+                        filter.id = item.id;
+                        model.filter = filter;
+                    } else {
+                        model.filter = self.getFilterById(item.id, !options.allow_invalid);
+                    }
                 }
 
                 if (model.filter) {
